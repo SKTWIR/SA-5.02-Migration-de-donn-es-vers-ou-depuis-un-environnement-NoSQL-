@@ -29,6 +29,6 @@ Une fois les entités définies, il a fallu établir comment elles interagissaie
 
     Relation événementielle / Table de Faits (ENREGISTRE) : L'information centrale (le "nombre de faits") n'appartient ni à un service seul, ni à une infraction seule, mais résulte du croisement entre un SERVICE, une INFRACTION et une ANNÉE spécifique. Nous avons donc identifié une association ternaire. Dans notre modèle logique relationnel, elle prend la forme d'une table de faits que nous avons nommée Fait_Statistique. Sa clé primaire est composite (ID_Service + Code_Index + Annee), garantissant l'unicité de chaque relevé statistique.
 
-Conclusion de l'étude conceptuelle
+# Conclusion de l'étude conceptuelle
 
 Ce raisonnement analytique nous a permis de concevoir une architecture en "schéma en étoile". Ce modèle relationnel normalisé en 3NF (Troisième Forme Normale) assure l'intégrité des données historiques (2012-2021) tout en préparant naturellement le terrain pour la Phase 3 : en effet, les entités identifiées deviendront les Nœuds (Nodes) de notre future base de données orientée graphe (Neo4j), et les associations deviendront nos Relations (Edges).
