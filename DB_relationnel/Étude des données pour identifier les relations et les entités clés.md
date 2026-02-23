@@ -1,7 +1,7 @@
-Étude des données et identification des entités et relations clés
+# Étude des données et identification des entités et relations clés
 
 L’objectif premier de cette phase a été d'analyser la structure des données brutes (fichiers Excel/CSV fournis par le Ministère de l'Intérieur) afin de concevoir un modèle relationnel normalisé, exempt de redondances et optimisé pour l'interrogation.
-1. Analyse de la structure initiale (Les données brutes)
+# 1. Analyse de la structure initiale (Les données brutes)
 
 L'étude des fichiers sources a révélé une structure en "tableau croisé" (format Wide), conçue pour la lecture humaine mais inadaptée à un Système de Gestion de Base de Données (SGBD).
 
@@ -11,7 +11,7 @@ L'étude des fichiers sources a révélé une structure en "tableau croisé" (fo
 
     Les valeurs à l'intersection représentaient le volume (le nombre de faits constatés).
 
-2. Identification des Entités (Concepts métiers indépendants)
+# 2. Identification des Entités (Concepts métiers indépendants)
 
 Pour passer de cette matrice à un Modèle Conceptuel de Données (MCD), nous avons appliqué les règles de normalisation pour isoler les concepts "autonomes". Nous avons identifié trois entités dimensionnelles principales :
 
@@ -21,7 +21,7 @@ Pour passer de cette matrice à un Modèle Conceptuel de Données (MCD), nous av
 
     L'entité DÉPARTEMENT : Elle représente le "Où". Bien qu'elle n'ait qu'un code dans les données initiales, c'est une entité géographique à part entière qui a vocation à être enrichie ultérieurement (notamment via des données publiques lors du passage au modèle Graphe).
 
-3. Identification des Relations et de la Table de Faits
+# 3. Identification des Relations et de la Table de Faits
 
 Une fois les entités définies, il a fallu établir comment elles interagissaient pour former l'information finale (le nombre de crimes/délits).
 
