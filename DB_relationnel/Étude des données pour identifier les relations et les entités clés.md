@@ -12,20 +12,24 @@ Les valeurs à l'intersection représentaient le volume (le nombre de faits cons
 # 2. Identification des Entités (Concepts métiers indépendants)
 
 Pour passer de cette matrice à un Modèle Conceptuel de Données (MCD), nous avons appliqué les règles de normalisation pour isoler les concepts "autonomes". Nous avons identifié trois entités dimensionnelles principales :
+ ## L'entité INFRACTION : 
+   * Elle représente le "Quoi". Elle est structurée autour d'un identifiant naturel fort (l'Index 4001, allant de 1 à 107) et d'une description textuelle (le libellé du crime ou délit).
 
-* L'entité INFRACTION : Elle représente le "Quoi". Elle est structurée autour d'un identifiant naturel fort (l'Index 4001, allant de 1 à 107) et d'une description textuelle (le libellé du crime ou délit).
+## L'entité SERVICE : 
+    * Elle représente le "Qui". Chaque colonne de nos fichiers correspondait à un point d'enregistrement (une brigade de Gendarmerie ou un commissariat de Police). Cette entité possède ses propres attributs : son nom, son périmètre administratif et son appartenance (Force de l'ordre : PN ou GN).
 
-* L'entité SERVICE : Elle représente le "Qui". Chaque colonne de nos fichiers correspondait à un point d'enregistrement (une brigade de Gendarmerie ou un commissariat de Police). Cette entité possède ses propres attributs : son nom, son périmètre administratif et son appartenance (Force de l'ordre : PN ou GN).
-
-* L'entité DÉPARTEMENT : Elle représente le "Où". Bien qu'elle n'ait qu'un code dans les données initiales, c'est une entité géographique à part entière qui a vocation à être enrichie ultérieurement (notamment via des données publiques lors du passage au modèle Graphe).
+## L'entité DÉPARTEMENT : 
+    * Elle représente le "Où". Bien qu'elle n'ait qu'un code dans les données initiales, c'est une entité géographique à part entière qui a vocation à être enrichie ultérieurement (notamment via des données publiques lors du passage au modèle Graphe).
 
 # 3. Identification des Relations et de la Table de Faits
 
 Une fois les entités définies, il a fallu établir comment elles interagissaient pour former l'information finale (le nombre de crimes/délits).
 
-* Relation structurelle (SITUE_DANS) : L'analyse a montré qu'un service appartient de manière stricte à une zone géographique. Nous avons donc identifié une relation (1,1) entre SERVICE et DÉPARTEMENT. Dans le modèle logique, cela se traduit par la présence de la clé étrangère code_dept dans la table des Services.
+## Relation structurelle (SITUE_DANS) : 
+    * L'analyse a montré qu'un service appartient de manière stricte à une zone géographique. Nous avons donc identifié une relation (1,1) entre SERVICE et DÉPARTEMENT. Dans le modèle logique, cela se traduit par la présence de la clé étrangère code_dept dans la table des Services.
 
-* Relation événementielle / Table de Faits (ENREGISTRE) : L'information centrale (le "nombre de faits") n'appartient ni à un service seul, ni à une infraction seule, mais résulte du croisement entre un SERVICE, une INFRACTION et une ANNÉE spécifique. Nous avons donc identifié une association ternaire. Dans notre modèle logique relationnel, elle prend la forme d'une table de faits que nous avons nommée Fait_Statistique. Sa clé primaire est composite (ID_Service + Code_Index + Annee), garantissant l'unicité de chaque relevé statistique.
+## Relation événementielle / Table de Faits (ENREGISTRE) : 
+    * L'information centrale (le "nombre de faits") n'appartient ni à un service seul, ni à une infraction seule, mais résulte du croisement entre un SERVICE, une INFRACTION et une ANNÉE spécifique. Nous avons donc identifié une association ternaire. Dans notre modèle logique relationnel, elle prend la forme d'une table de faits que nous avons nommée Fait_Statistique. Sa clé primaire est composite (ID_Service + Code_Index + Annee), garantissant l'unicité de chaque relevé statistique.
 
 # Conclusion de l'étude conceptuelle
 
