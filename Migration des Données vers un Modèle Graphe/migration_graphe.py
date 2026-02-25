@@ -5,10 +5,15 @@ import time
 # --- CONFIGURATION DE CONNEXION NEO4J ---
 URI = "bolt://localhost:7687"
 UTILISATEUR = "neo4j"
-MOT_DE_PASSE = "admin123"
+MOT_DE_PASSE = "admin123" # <-- À MODIFIER
+
+def vider_graphe(driver):
+    """Supprime les données corrompues des anciens essais pour repartir de zéro"""
+    print("🧹 Nettoyage de la base de données (suppression des anciens essais)...")
+    with driver.session() as session:
+        session.run("MATCH (n) DETACH DELETE n")
 
 def creer_contraintes(driver):
-    """Crée des index et des contraintes d'unicité pour accélérer la création du graphe"""
     print("⚙️  Création des index et contraintes...")
     requetes = [
         "CREATE CONSTRAINT IF NOT EXISTS FOR (d:Departement) REQUIRE d.code IS UNIQUE",
@@ -17,46 +22,54 @@ def creer_contraintes(driver):
     ]
     with driver.session() as session:
         for req in requetes:
-            session.run(req)
+            try:
+                session.run(req)
+            except Exception:
+                pass
 
 def inserer_noeuds(driver, df):
     print("1️⃣  Création des Noeuds : Départements, Infractions et Services...")
     
+    # METHODE INFAILLIBLE : Conversion en types natifs Python exclusifs
     depts = [{'code': str(d)} for d in df['code_dept'].unique()]
-    infras = df[['code_index', 'libelle_infraction']].drop_duplicates().to_dict('records')
     
-    # Création d'un identifiant unique pour les services
-    df['service_unique'] = df['nom_service'] + " (" + df['code_dept'].astype(str) + ")"
-    services = df[['service_unique', 'perimetre', 'force_ordre']].drop_duplicates().to_dict('records')
+    df_infras = df[['code_index', 'libelle_infraction']].drop_duplicates()
+    infras = [
+        {'code_index': int(row.code_index), 'libelle_infraction': str(row.libelle_infraction)} 
+        for row in df_infras.itertuples(index=False)
+    ]
+    
+    df_services = df[['service_unique', 'perimetre', 'force_ordre']].drop_duplicates()
+    services = [
+        {'nom': str(row.service_unique), 'perimetre': str(row.perimetre), 'force_ordre': str(row.force_ordre)} 
+        for row in df_services.itertuples(index=False)
+    ]
 
     with driver.session() as session:
-        # Départements
-        session.run("""
-            UNWIND $depts AS d
-            MERGE (:Departement {code: d.code})
-        """, depts=depts)
-        
-        # Infractions
-        session.run("""
-            UNWIND $infras AS i
-            MERGE (inf:Infraction {code_index: i.code_index})
-            ON CREATE SET inf.libelle = i.libelle_infraction
-        """, infras=infras)
-        
-        # Services
-        session.run("""
-            UNWIND $services AS s
-            MERGE (srv:Service {nom: s.service_unique})
-            ON CREATE SET srv.perimetre = s.perimetre, srv.force = s.force_ordre
-        """, services=services)
+        session.run("UNWIND $depts AS d MERGE (:Departement {code: d.code})", depts=depts)
+        session.run("UNWIND $infras AS i MERGE (inf:Infraction {code_index: i.code_index}) SET inf.libelle = i.libelle_infraction", infras=infras)
+        session.run("UNWIND $services AS s MERGE (srv:Service {nom: s.nom}) SET srv.perimetre = s.perimetre, srv.force = s.force_ordre", services=services)
 
 def inserer_relations(driver, df):
     print("2️⃣  Création des Relations (SITUE_DANS et A_ENREGISTRE)...")
-    print("⏳ Cette étape peut prendre 1 à 3 minutes vu le volume de données.")
+    print("⏳ Préparation des données relationnelles en cours...")
     
-    relations_data = df[['service_unique', 'code_dept', 'code_index', 'annee', 'nombre_faits']].to_dict('records')
+    # On force la conversion native pour les millions de relations
+    df_rels = df[['service_unique', 'code_dept', 'code_index', 'annee', 'nombre_faits']]
+    relations_data = [
+        {
+            'service_unique': str(row.service_unique),
+            'code_dept': str(row.code_dept),
+            'code_index': int(row.code_index),
+            'annee': int(row.annee),
+            'nombre_faits': int(row.nombre_faits)
+        }
+        for row in df_rels.itertuples(index=False)
+    ]
     
     batch_size = 10000
+    print(f"⏳ Insertion de {len(relations_data)} relations par paquets de {batch_size} (Veuillez patienter)...")
+    
     with driver.session() as session:
         for i in range(0, len(relations_data), batch_size):
             batch = relations_data[i:i+batch_size]
@@ -77,24 +90,23 @@ if __name__ == "__main__":
     fichier_csv = r"DB_relationnel\base_donnees_propre_2012_2021.csv"
     
     try:
-        print(f"📂 Chargement du CSV et nettoyage rigoureux des types...")
-        
-        # 1. On charge tout en texte pour bloquer l'apparition de Float/NaN non désirés
+        print(f"📂 Chargement du CSV...")
         df_complet = pd.read_csv(fichier_csv, dtype=str, keep_default_na=False, low_memory=False)
         
-        # 2. Conversion sécurisée des nombres (si erreur ou vide -> 0)
+        # Formatage drastique des valeurs
         df_complet['nombre_faits'] = pd.to_numeric(df_complet['nombre_faits'], errors='coerce').fillna(0).astype(int)
         df_complet['code_index'] = pd.to_numeric(df_complet['code_index'], errors='coerce').fillna(0).astype(int)
         df_complet['annee'] = pd.to_numeric(df_complet['annee'], errors='coerce').fillna(0).astype(int)
         
-        # 3. Nettoyage et verrouillage des textes
         df_complet['code_dept'] = df_complet['code_dept'].astype(str).str.strip()
         df_complet['nom_service'] = df_complet['nom_service'].astype(str).str.strip()
         df_complet['perimetre'] = df_complet['perimetre'].astype(str).str.strip()
         df_complet['force_ordre'] = df_complet['force_ordre'].astype(str).str.strip()
         df_complet['libelle_infraction'] = df_complet['libelle_infraction'].astype(str).str.strip()
         
-        # 4. On supprime les faits à 0 pour alléger drastiquement le graphe
+        # Création de la clé unique
+        df_complet['service_unique'] = df_complet['nom_service'] + " (" + df_complet['code_dept'] + ")"
+        
         df_filtre = df_complet[df_complet['nombre_faits'] > 0].copy()
         
         print(f"🚀 Connexion à Neo4j...")
@@ -102,6 +114,8 @@ if __name__ == "__main__":
         
         start_time = time.time()
         
+        # Exécution dans l'ordre stricts
+        vider_graphe(driver)
         creer_contraintes(driver)
         inserer_noeuds(driver, df_filtre)
         inserer_relations(driver, df_filtre)
@@ -109,7 +123,8 @@ if __name__ == "__main__":
         driver.close()
         
         duree = round(time.time() - start_time, 2)
-        print(f"✅ MIGRATION TERMINÉE AVEC SUCCÈS en {duree} secondes !")
+        print(f"\n✅ MIGRATION TERMINÉE AVEC SUCCÈS en {duree} secondes !")
+        print("➡️ Allez sur Neo4j Desktop et tapez : MATCH (n) RETURN n LIMIT 50")
         
     except Exception as e:
         print(f"❌ Une erreur s'est produite : {e}")
