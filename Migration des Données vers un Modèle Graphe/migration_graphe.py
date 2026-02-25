@@ -5,7 +5,7 @@ import time
 # --- CONFIGURATION DE CONNEXION NEO4J ---
 URI = "bolt://localhost:7687"
 UTILISATEUR = "neo4j"
-MOT_DE_PASSE = "admin123" # <-- À MODIFIER
+MOT_DE_PASSE = "admin123"
 
 def vider_graphe(driver):
     """Supprime les données corrompues des anciens essais pour repartir de zéro"""
@@ -30,7 +30,6 @@ def creer_contraintes(driver):
 def inserer_noeuds(driver, df):
     print("1️⃣  Création des Noeuds : Départements, Infractions et Services...")
     
-    # METHODE INFAILLIBLE : Conversion en types natifs Python exclusifs
     depts = [{'code': str(d)} for d in df['code_dept'].unique()]
     
     df_infras = df[['code_index', 'libelle_infraction']].drop_duplicates()
@@ -47,14 +46,15 @@ def inserer_noeuds(driver, df):
 
     with driver.session() as session:
         session.run("UNWIND $depts AS d MERGE (:Departement {code: d.code})", depts=depts)
-        session.run("UNWIND $infras AS i MERGE (inf:Infraction {code_index: i.code_index}) SET inf.libelle = i.libelle_infraction", infras=infras)
+        
+        # CORRECTION ICI : Remplacement de "inf" par "infra"
+        session.run("UNWIND $infras AS i MERGE (infra:Infraction {code_index: i.code_index}) SET infra.libelle = i.libelle_infraction", infras=infras)
+        
         session.run("UNWIND $services AS s MERGE (srv:Service {nom: s.nom}) SET srv.perimetre = s.perimetre, srv.force = s.force_ordre", services=services)
 
 def inserer_relations(driver, df):
     print("2️⃣  Création des Relations (SITUE_DANS et A_ENREGISTRE)...")
-    print("⏳ Préparation des données relationnelles en cours...")
     
-    # On force la conversion native pour les millions de relations
     df_rels = df[['service_unique', 'code_dept', 'code_index', 'annee', 'nombre_faits']]
     relations_data = [
         {
@@ -81,8 +81,9 @@ def inserer_relations(driver, df):
                 MERGE (s)-[:SITUE_DANS]->(d)
                 
                 WITH s, ligne
-                MATCH (inf:Infraction {code_index: ligne.code_index})
-                CREATE (s)-[:A_ENREGISTRE {annee: ligne.annee, nombre_faits: ligne.nombre_faits}]->(inf)
+                // CORRECTION ICI AUSSI : Remplacement de "inf" par "infra"
+                MATCH (infra:Infraction {code_index: ligne.code_index})
+                CREATE (s)-[:A_ENREGISTRE {annee: ligne.annee, nombre_faits: ligne.nombre_faits}]->(infra)
             """, batch=batch)
             print(f"Progression : {min(i+batch_size, len(relations_data))} / {len(relations_data)} relations créées...")
 
@@ -93,7 +94,6 @@ if __name__ == "__main__":
         print(f"📂 Chargement du CSV...")
         df_complet = pd.read_csv(fichier_csv, dtype=str, keep_default_na=False, low_memory=False)
         
-        # Formatage drastique des valeurs
         df_complet['nombre_faits'] = pd.to_numeric(df_complet['nombre_faits'], errors='coerce').fillna(0).astype(int)
         df_complet['code_index'] = pd.to_numeric(df_complet['code_index'], errors='coerce').fillna(0).astype(int)
         df_complet['annee'] = pd.to_numeric(df_complet['annee'], errors='coerce').fillna(0).astype(int)
@@ -104,7 +104,6 @@ if __name__ == "__main__":
         df_complet['force_ordre'] = df_complet['force_ordre'].astype(str).str.strip()
         df_complet['libelle_infraction'] = df_complet['libelle_infraction'].astype(str).str.strip()
         
-        # Création de la clé unique
         df_complet['service_unique'] = df_complet['nom_service'] + " (" + df_complet['code_dept'] + ")"
         
         df_filtre = df_complet[df_complet['nombre_faits'] > 0].copy()
@@ -114,7 +113,6 @@ if __name__ == "__main__":
         
         start_time = time.time()
         
-        # Exécution dans l'ordre stricts
         vider_graphe(driver)
         creer_contraintes(driver)
         inserer_noeuds(driver, df_filtre)
