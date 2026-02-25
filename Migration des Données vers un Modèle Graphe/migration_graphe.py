@@ -5,7 +5,7 @@ import time
 # --- CONFIGURATION DE CONNEXION NEO4J ---
 URI = "bolt://localhost:7687"
 UTILISATEUR = "neo4j"
-MOT_DE_PASSE = "admin123"
+MOT_DE_PASSE = "admin123" # À adapter selon votre configuration
 
 def vider_graphe(driver):
     """Supprime les données corrompues des anciens essais pour repartir de zéro"""
