@@ -2,7 +2,7 @@ import pandas as pd
 
 def nettoyer_excel_complet(nom_fichier):
     print(f"Chargement du fichier Excel : {nom_fichier}")
-    print("Cela peut prendre 1 à 2 minutes vu la taille du fichier...")
+    print("Cela peut prendre 1 à 2 minutes vu la taille du fichier")
     
     # Chargement de tous les onglets
     xls = pd.read_excel(nom_fichier, sheet_name=None, header=None)
@@ -70,7 +70,7 @@ def nettoyer_excel_complet(nom_fichier):
     # Concaténation et sauvegarde
     if toutes_les_donnees:
         df_final = pd.concat(toutes_les_donnees, ignore_index=True)
-        fichier_sortie = r"c:\Users\irahmani\Downloads\base_donnees_propre_2012_2021.csv"
+        fichier_sortie = r"DB_relationnel\base_donnees_propre_2012_2021.csv"
         df_final.to_csv(fichier_sortie, index=False, encoding='utf-8')
         print(f"\n✅ Nettoyage terminé avec succès !")
         print(f"Fichier plat généré : {fichier_sortie} (Total : {len(df_final)} lignes)")
@@ -79,5 +79,5 @@ def nettoyer_excel_complet(nom_fichier):
 
 if __name__ == "__main__":
     # Assurez-vous que le chemin est correct (avec des doubles anti-slash \\ ou un r devant les guillemets)
-    nom_du_fichier = r"c:\Users\irahmani\Downloads\crimes-et-delits-enregistres-par-les-services-de-gendarmerie-et-de-police-depuis-2012.xlsx"
+    nom_du_fichier = r"Consige_et_donnees_brut\crimes-et-delits-enregistres-par-les-services-de-gendarmerie-et-de-police-depuis-2012.xlsx"
     nettoyer_excel_complet(nom_du_fichier)
