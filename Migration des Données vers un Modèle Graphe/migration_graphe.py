@@ -9,12 +9,12 @@ MOT_DE_PASSE = "admin123" # À adapter selon votre configuration
 
 def vider_graphe(driver):
     """Supprime les données corrompues des anciens essais pour repartir de zéro"""
-    print("🧹 Nettoyage de la base de données (suppression des anciens essais)...")
+    print("Nettoyage de la base de données (suppression des anciens essais)...")
     with driver.session() as session:
         session.run("MATCH (n) DETACH DELETE n")
 
 def creer_contraintes(driver):
-    print("⚙️  Création des index et contraintes...")
+    print("Création des index et contraintes...")
     requetes = [
         "CREATE CONSTRAINT IF NOT EXISTS FOR (d:Departement) REQUIRE d.code IS UNIQUE",
         "CREATE CONSTRAINT IF NOT EXISTS FOR (i:Infraction) REQUIRE i.code_index IS UNIQUE",
@@ -28,7 +28,7 @@ def creer_contraintes(driver):
                 pass
 
 def inserer_noeuds(driver, df):
-    print("1️⃣  Création des Noeuds : Départements, Infractions et Services...")
+    print("Création des Noeuds : Départements, Infractions et Services...")
     
     depts = [{'code': str(d)} for d in df['code_dept'].unique()]
     
@@ -53,7 +53,7 @@ def inserer_noeuds(driver, df):
         session.run("UNWIND $services AS s MERGE (srv:Service {nom: s.nom}) SET srv.perimetre = s.perimetre, srv.force = s.force_ordre", services=services)
 
 def inserer_relations(driver, df):
-    print("2️⃣  Création des Relations (SITUE_DANS et A_ENREGISTRE)...")
+    print("Création des Relations (SITUE_DANS et A_ENREGISTRE)...")
     
     df_rels = df[['service_unique', 'code_dept', 'code_index', 'annee', 'nombre_faits']]
     relations_data = [
@@ -68,7 +68,7 @@ def inserer_relations(driver, df):
     ]
     
     batch_size = 10000
-    print(f"⏳ Insertion de {len(relations_data)} relations par paquets de {batch_size} (Veuillez patienter)...")
+    print(f"Insertion de {len(relations_data)} relations par paquets de {batch_size} (Veuillez patienter)...")
     
     with driver.session() as session:
         for i in range(0, len(relations_data), batch_size):
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     fichier_csv = r"DB_relationnel\base_donnees_propre_2012_2021.csv"
     
     try:
-        print(f"📂 Chargement du CSV...")
+        print(f"Chargement du CSV")
         df_complet = pd.read_csv(fichier_csv, dtype=str, keep_default_na=False, low_memory=False)
         
         df_complet['nombre_faits'] = pd.to_numeric(df_complet['nombre_faits'], errors='coerce').fillna(0).astype(int)
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         
         df_filtre = df_complet[df_complet['nombre_faits'] > 0].copy()
         
-        print(f"🚀 Connexion à Neo4j...")
+        print(f"Connexion à Neo4j...")
         driver = GraphDatabase.driver(URI, auth=(UTILISATEUR, MOT_DE_PASSE))
         
         start_time = time.time()
@@ -121,8 +121,8 @@ if __name__ == "__main__":
         driver.close()
         
         duree = round(time.time() - start_time, 2)
-        print(f"\n✅ MIGRATION TERMINÉE AVEC SUCCÈS en {duree} secondes !")
-        print("➡️ Allez sur Neo4j Desktop et tapez : MATCH (n) RETURN n LIMIT 50")
+        print(f"\n MIGRATION TERMINÉE AVEC SUCCÈS en {duree} secondes !")
+        print("Allez sur Neo4j Desktop et tapez : MATCH (n) RETURN n LIMIT 50")
         
     except Exception as e:
-        print(f"❌ Une erreur s'est produite : {e}")
+        print(f"Une erreur s'est produite : {e}")
