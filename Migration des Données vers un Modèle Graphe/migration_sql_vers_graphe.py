@@ -1,14 +1,16 @@
 import sqlite3
 from neo4j import GraphDatabase
 import time
+import os
 
 # --- CONFIGURATION NEO4J ---
 URI = "bolt://localhost:7687"
 UTILISATEUR = "neo4j"
-MOT_DE_PASSE = "VOTRE_MOT_DE_PASSE_ICI" # <-- À MODIFIER
+MOT_DE_PASSE = "admin123" # <-- À MODIFIER
 
-# --- CONFIGURATION SQLITE ---
-DB_SQLITE = "crimes_delits.db"
+# --- CONFIGURATION SQLITE (CHEMIN RELATIF) ---
+# Utilisation du slash (/) pour éviter les problèmes d'échappement sur Windows
+DB_SQLITE = "DB_relationnel/crimes_delits.db"
 
 def vider_graphe(neo_driver):
     print("🧹 Nettoyage de la base Neo4j...")
@@ -54,10 +56,9 @@ def inserer_relations_depuis_sql(neo_driver, sqlite_conn):
     print("2️⃣  Extraction des Statistiques et Création des Relations...")
     cursor = sqlite_conn.cursor()
 
-    # Requête SQL pour préparer nos données de relations.
-    # On fait une jointure pour récupérer le nom du service et son département.
+    # Requête SQL pour préparer nos données de relations. 
     requete_sql = """
-    SELECT
+    SELECT 
         s.nom_service || ' (' || s.code_dept || ')' AS service_unique,
         s.code_dept,
         f.code_index,
@@ -74,7 +75,7 @@ def inserer_relations_depuis_sql(neo_driver, sqlite_conn):
 
     with neo_driver.session() as session:
         while True:
-            # On lit la base SQLite par paquets de 10 000 pour ne pas saturer la RAM
+            # On lit la base SQLite par paquets de 10 000
             rows = cursor.fetchmany(batch_size)
             if not rows:
                 break # Fin des données
@@ -93,40 +94,43 @@ def inserer_relations_depuis_sql(neo_driver, sqlite_conn):
             # Injection Cypher
             session.run("""
                 UNWIND $batch AS ligne
-
+                
                 MATCH (s:Service {nom: ligne.service_unique})
                 MATCH (d:Departement {code: ligne.code_dept})
                 MERGE (s)-[:SITUE_DANS]->(d)
-
+                
                 WITH s, ligne
                 MATCH (infra:Infraction {code_index: ligne.code_index})
                 CREATE (s)-[:A_ENREGISTRE {annee: ligne.annee, nombre_faits: ligne.nombre_faits}]->(infra)
             """, batch=batch)
-
+            
             total_relations += len(batch)
             print(f"Progression : {total_relations} relations migrées depuis SQLite...")
 
 if __name__ == "__main__":
     try:
+        # Vérification du chemin avant de démarrer
+        if not os.path.exists(DB_SQLITE):
+            raise FileNotFoundError(f"Impossible de trouver la base SQLite au chemin : {DB_SQLITE}. Vérifiez que vous lancez le script depuis la racine du projet.")
+
         print(f"🔌 Connexion à la base SQLite ({DB_SQLITE})...")
         sqlite_conn = sqlite3.connect(DB_SQLITE)
-
+        
         print(f"🚀 Connexion à Neo4j...")
         neo_driver = GraphDatabase.driver(URI, auth=(UTILISATEUR, MOT_DE_PASSE))
-
+        
         start_time = time.time()
-
+        
         vider_graphe(neo_driver)
         creer_contraintes(neo_driver)
         inserer_noeuds_depuis_sql(neo_driver, sqlite_conn)
         inserer_relations_depuis_sql(neo_driver, sqlite_conn)
-
-        # Fermeture propre des deux bases de données
+        
         neo_driver.close()
         sqlite_conn.close()
-
+        
         duree = round(time.time() - start_time, 2)
         print(f"\n✅ MIGRATION DB-VERS-DB TERMINÉE AVEC SUCCÈS en {duree} secondes !")
-
+        
     except Exception as e:
         print(f"❌ Une erreur s'est produite : {e}")
