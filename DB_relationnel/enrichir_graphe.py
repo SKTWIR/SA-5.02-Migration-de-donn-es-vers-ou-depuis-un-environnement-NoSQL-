@@ -59,13 +59,13 @@ ADJACENCES_FRANCE = {
 }
 
 def telecharger_donnees_gouvernementales():
-    print("🌍 1/2 : Récupération des Régions via l'API geo.api.gouv.fr...")
+    print("1/2 : Récupération des Régions via l'API geo.api.gouv.fr...")
     regions = requests.get("https://geo.api.gouv.fr/regions").json()
     depts = requests.get("https://geo.api.gouv.fr/departements").json()
     return regions, depts
 
 def preparer_relations_voisins(dictionnaire):
-    print("🌍 2/2 : Préparation de la carte de France (Voisins)...")
+    print("2/2 : Préparation de la carte de France (Voisins)...")
     relations = []
     vus = set()
     for d1, voisins in dictionnaire.items():
@@ -77,7 +77,7 @@ def preparer_relations_voisins(dictionnaire):
     return relations
 
 def enrichir_neo4j_complet(driver, regions, departements, frontieres):
-    print("🔗 Injection dans Neo4j...")
+    print("Injection dans Neo4j...")
     with driver.session() as session:
         # 1. Création des Régions et Appartenance
         session.run("""
@@ -100,7 +100,7 @@ def enrichir_neo4j_complet(driver, regions, departements, frontieres):
             MERGE (dept1)-[:EST_VOISIN_DE]->(dept2)
         """, frontieres=frontieres)
         
-    print("✅ Le graphe a été totalement enrichi (Régions + Adjacences) !")
+    print("Le graphe a été totalement enrichi (Régions + Adjacences) !")
 
 if __name__ == "__main__":
     try:
@@ -112,4 +112,4 @@ if __name__ == "__main__":
         driver.close()
         
     except Exception as e:
-        print(f"❌ Erreur : {e}")
+        print(f"Erreur : {e}")

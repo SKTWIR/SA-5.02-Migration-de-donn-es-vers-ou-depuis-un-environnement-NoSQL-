@@ -32,7 +32,7 @@ def creer_contraintes(neo_driver):
                 pass
 
 def inserer_noeuds_depuis_sql(neo_driver, sqlite_conn):
-    print("1️⃣  Extraction depuis SQLite et Création des Noeuds...")
+    print("Extraction depuis SQLite et Création des Noeuds...")
     cursor = sqlite_conn.cursor()
 
     # 1. Extraction des Départements
@@ -53,7 +53,7 @@ def inserer_noeuds_depuis_sql(neo_driver, sqlite_conn):
         session.run("UNWIND $services AS s MERGE (srv:Service {nom: s.nom}) SET srv.perimetre = s.perimetre, srv.force = s.force_ordre", services=services)
 
 def inserer_relations_depuis_sql(neo_driver, sqlite_conn):
-    print("2️⃣  Extraction des Statistiques et Création des Relations...")
+    print("Extraction des Statistiques et Création des Relations...")
     cursor = sqlite_conn.cursor()
 
     # Requête SQL pour préparer nos données de relations. 
@@ -113,10 +113,10 @@ if __name__ == "__main__":
         if not os.path.exists(DB_SQLITE):
             raise FileNotFoundError(f"Impossible de trouver la base SQLite au chemin : {DB_SQLITE}. Vérifiez que vous lancez le script depuis la racine du projet.")
 
-        print(f"🔌 Connexion à la base SQLite ({DB_SQLITE})...")
+        print(f"Connexion à la base SQLite ({DB_SQLITE})...")
         sqlite_conn = sqlite3.connect(DB_SQLITE)
         
-        print(f"🚀 Connexion à Neo4j...")
+        print(f"Connexion à Neo4j...")
         neo_driver = GraphDatabase.driver(URI, auth=(UTILISATEUR, MOT_DE_PASSE))
         
         start_time = time.time()
@@ -130,7 +130,7 @@ if __name__ == "__main__":
         sqlite_conn.close()
         
         duree = round(time.time() - start_time, 2)
-        print(f"\n✅ MIGRATION DB-VERS-DB TERMINÉE AVEC SUCCÈS en {duree} secondes !")
+        print(f"\n MIGRATION DB-VERS-DB TERMINÉE AVEC SUCCÈS en {duree} secondes !")
         
     except Exception as e:
-        print(f"❌ Une erreur s'est produite : {e}")
+        print(f"Une erreur s'est produite : {e}")

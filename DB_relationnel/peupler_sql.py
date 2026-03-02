@@ -100,7 +100,7 @@ def peupler_base_sql(fichier_csv, fichier_db):
     conn.close()
     
     taille_mo = os.path.getsize(fichier_db) / (1024 * 1024)
-    print(f"\n✅ TERMINÉ ! La base SQL '{fichier_db}' a été créée avec succès ({taille_mo:.2f} Mo).")
+    print(f"\nTERMINÉ ! La base SQL '{fichier_db}' a été créée avec succès ({taille_mo:.2f} Mo).")
 
 if __name__ == "__main__":
     csv_entree = r"DB_relationnel\base_donnees_propre_2012_2021.csv"
