@@ -1,18 +1,18 @@
 # SAÉ 5.02 - Migration d'une Base de Données Relationnelle vers un Modèle Graphe (Neo4j)
 
-[cite_start]Ce projet a été réalisé dans le cadre de la **SAÉ 5.02** et répond à la demande du Ministère de l'Intérieur[cite: 3, 4]. [cite_start]Il a pour objectif principal d'optimiser l'analyse des données relatives aux crimes et délits enregistrés par la Police et la Gendarmerie nationale[cite: 9, 14, 23]. 
+Ce projet a été réalisé dans le cadre de la **SAÉ 5.02** et répond à la demande du Ministère de l'Intérieur[cite: 3, 4]. Il a pour objectif principal d'optimiser l'analyse des données relatives aux crimes et délits enregistrés par la Police et la Gendarmerie nationale[cite: 9, 14, 23]. 
 
-Le projet consiste à modéliser un jeu de données massives depuis un format tabulaire brut vers une **Base de Données Relationnelle (SQLite)**, puis de migrer ces données vers une **Base de Données orientée Graphe (Neo4j)**. [cite_start]Les bases de données relationnelles présentant des limites pour les analyses complexes en réseau[cite: 10], l'utilisation du modèle Graphe (*Index-Free Adjacency*) permet de répondre instantanément à des requêtes analytiques spatiales et temporelles.
+Le projet consiste à modéliser un jeu de données massives depuis un format tabulaire brut vers une **Base de Données Relationnelle (SQLite)**, puis de migrer ces données vers une **Base de Données orientée Graphe (Neo4j)**. Les bases de données relationnelles présentant des limites pour les analyses complexes en réseau[cite: 10], l'utilisation du modèle Graphe (*Index-Free Adjacency*) permet de répondre instantanément à des requêtes analytiques spatiales et temporelles.
 
 ## Contexte et Objectifs
 
 Les données sources proviennent du Ministère de l'Intérieur et recensent 107 types d'infractions. Conformément au cahier des charges, le projet s'articule autour de 5 grandes phases :
 
-1. [cite_start]**Phase 1 : Analyse des Données Sources et Modélisation Relationnel** (Nettoyage ETL et création du MCD/MLD)[cite: 22].
-2. [cite_start]**Phase 2 : Analyse des Limites du modèle relationnel** (Étude des contraintes SQL face aux requêtes analytiques)[cite: 28].
-3. [cite_start]**Phase 3 : Migration des Données vers un Modèle Graphe** (Transformation de la base SQL en réseau Neo4j v1.5.9)[cite: 32, 34].
-4. [cite_start]**Phase 4 : Validation et Exploitation de la Solution Graphe** (Comparaison des performances Cypher vs SQL)[cite: 35].
-5. [cite_start]**Phase 5 : Rédaction et Présentation du Rapport Final** (Documentation et enrichissement via des données publiques)[cite: 18, 41].
+1.  **Phase 1 : Analyse des Données Sources et Modélisation Relationnel** (Nettoyage ETL et création du MCD/MLD)[cite: 22].
+2.  **Phase 2 : Analyse des Limites du modèle relationnel** (Étude des contraintes SQL face aux requêtes analytiques)[cite: 28].
+3.  **Phase 3 : Migration des Données vers un Modèle Graphe** (Transformation de la base SQL en réseau Neo4j v1.5.9)[cite: 32, 34].
+4.  **Phase 4 : Validation et Exploitation de la Solution Graphe** (Comparaison des performances Cypher vs SQL)[cite: 35].
+5.  **Phase 5 : Rédaction et Présentation du Rapport Final** (Documentation et enrichissement via des données publiques)[cite: 18, 41].
 
 ---
 
@@ -20,7 +20,7 @@ Les données sources proviennent du Ministère de l'Intérieur et recensent 107 
 
 * **Langage** : Python 3
 * **Librairies** : `pandas` (ETL), `sqlite3` (SQL natif), `neo4j` (Driver Graphe), `requests` (API Web Sémantique)
-* [cite_start]**Bases de données** : SQLite (Relationnel) & Neo4j Desktop v1.5.9 (Graphe) [cite: 34]
+* **Bases de données** : SQLite (Relationnel) & Neo4j Desktop v1.5.9 (Graphe) [cite: 34]
 * **Langages de requêtes** : SQL & Cypher
 
 ---
