@@ -13,7 +13,7 @@ MOT_DE_PASSE = "admin123" # <-- À MODIFIER
 DB_SQLITE = "DB_relationnel/crimes_delits.db"
 
 def vider_graphe(neo_driver):
-    print("🧹 Nettoyage de la base Neo4j...")
+    print("Nettoyage de la base Neo4j...")
     with neo_driver.session() as session:
         session.run("MATCH (n) DETACH DELETE n")
 
