@@ -1,62 +1,115 @@
 import requests
 from neo4j import GraphDatabase
 
-# --- CONFIGURATION DE CONNEXION NEO4J ---
+# --- CONFIGURATION NEO4J ---
 URI = "bolt://localhost:7687"
 UTILISATEUR = "neo4j"
-MOT_DE_PASSE = "admin123" # <-- À adapterr
+MOT_DE_PASSE = "admin123" # <-- À modifier
+
+# --- DICTIONNAIRE LOCAL DES FRONTIÈRES ---
+ADJACENCES_FRANCE = {
+    "01": ["38", "39", "69", "71", "73", "74"], "02": ["08", "51", "59", "60", "77", "80"],
+    "03": ["18", "23", "42", "58", "63", "71"], "04": ["05", "06", "26", "83", "84"],
+    "05": ["04", "26", "38", "73"], "06": ["04", "83"],
+    "07": ["26", "30", "38", "42", "43", "48"], "08": ["02", "51", "55"],
+    "09": ["11", "31"], "10": ["21", "51", "52", "77", "89"],
+    "11": ["09", "31", "34", "66", "81"], "12": ["15", "30", "34", "46", "48", "81", "82"],
+    "13": ["30", "83", "84"], "14": ["27", "50", "61"],
+    "15": ["12", "19", "43", "46", "48", "63"], "16": ["17", "24", "79", "86", "87"],
+    "17": ["16", "24", "33", "79", "85"], "18": ["03", "23", "36", "41", "45", "58"],
+    "19": ["15", "23", "24", "46", "63", "87"], "21": ["10", "39", "52", "58", "70", "71", "89"],
+    "22": ["29", "35", "56"], "23": ["03", "18", "19", "36", "63", "87"],
+    "24": ["16", "17", "19", "33", "46", "47", "87"], "25": ["39", "70", "90"],
+    "26": ["04", "05", "07", "38", "84"], "27": ["14", "28", "60", "61", "76", "78", "95"],
+    "28": ["27", "41", "45", "61", "72", "78", "91"], "29": ["22", "56"],
+    "2A": ["2B"], "2B": ["2A"],
+    "30": ["07", "12", "13", "34", "48", "84"], "31": ["09", "11", "32", "65", "81", "82"],
+    "32": ["31", "40", "47", "65", "82"], "33": ["17", "24", "40", "47"],
+    "34": ["11", "12", "30", "81"], "35": ["22", "44", "49", "50", "53", "56"],
+    "36": ["18", "23", "37", "41", "86", "87"], "37": ["36", "41", "49", "72", "86"],
+    "38": ["01", "05", "07", "26", "69", "73"], "39": ["01", "21", "25", "70", "71"],
+    "40": ["32", "33", "47", "64"], "41": ["18", "28", "36", "37", "45", "72"],
+    "42": ["03", "07", "38", "43", "63", "69", "71"], "43": ["07", "15", "42", "48", "63"],
+    "44": ["35", "49", "56", "85"], "45": ["18", "28", "41", "58", "77", "89"],
+    "46": ["12", "15", "19", "24", "47", "82"], "47": ["24", "32", "33", "40", "46", "82"],
+    "48": ["07", "12", "15", "30", "43"], "49": ["35", "37", "44", "53", "72", "79", "85"],
+    "50": ["14", "35", "53", "61"], "51": ["02", "08", "10", "52", "55", "77"],
+    "52": ["10", "21", "51", "55", "70", "88"], "53": ["35", "49", "50", "72"],
+    "54": ["55", "57", "67", "88"], "55": ["08", "51", "52", "54", "88"],
+    "56": ["22", "29", "35", "44"], "57": ["54", "67"],
+    "58": ["03", "18", "21", "45", "71", "89"], "59": ["02", "62", "80"],
+    "60": ["02", "27", "76", "77", "80", "95"], "61": ["14", "27", "28", "50", "72"],
+    "62": ["59", "80"], "63": ["03", "15", "19", "23", "42", "43"],
+    "64": ["40", "65"], "65": ["31", "32", "64"],
+    "66": ["09", "11"], "67": ["54", "57", "68", "88"],
+    "68": ["67", "88", "90"], "69": ["01", "38", "42", "71"],
+    "70": ["21", "25", "39", "52", "88", "90"], "71": ["01", "03", "21", "39", "42", "58", "69"],
+    "72": ["28", "37", "41", "49", "53", "61"], "73": ["01", "05", "38", "74"],
+    "74": ["01", "73"], "75": ["92", "93", "94"],
+    "76": ["27", "60", "80"], "77": ["02", "10", "45", "51", "60", "89", "91", "93", "94", "95"],
+    "78": ["27", "28", "91", "92", "95"], "79": ["16", "17", "49", "85", "86"],
+    "80": ["02", "59", "60", "62", "76"], "81": ["11", "12", "31", "34", "82"],
+    "82": ["12", "31", "32", "46", "47", "81"], "83": ["04", "06", "13"],
+    "84": ["04", "13", "26", "30"], "85": ["17", "44", "49", "79"],
+    "86": ["16", "36", "37", "79", "87"], "87": ["16", "19", "23", "24", "36", "86"],
+    "88": ["52", "54", "55", "67", "68", "70"], "89": ["10", "21", "45", "58", "77"],
+    "90": ["25", "68", "70"], "91": ["28", "77", "78", "92", "94"],
+    "92": ["75", "78", "91", "93", "94", "95"], "93": ["75", "77", "92", "94", "95"],
+    "94": ["75", "77", "91", "92", "93"], "95": ["27", "60", "77", "78", "92", "93"]
+}
 
 def telecharger_donnees_gouvernementales():
-    """
-    Utilise l'API officielle du gouvernement (geo.api.gouv.fr)
-    pour récupérer les Régions et leur lien avec les Départements.
-    """
-    print("Interrogation de l'API geo.api.gouv.fr en cours...")
-    
-    # 1. Récupération des régions
-    reponse_regions = requests.get("https://geo.api.gouv.fr/regions")
-    regions_data = reponse_regions.json()
-    
-    # 2. Récupération des départements (qui contiennent leur codeRegion)
-    reponse_depts = requests.get("https://geo.api.gouv.fr/departements")
-    depts_data = reponse_depts.json()
-    
-    print(f"Succès ! {len(regions_data)} régions et {len(depts_data)} départements récupérés en un éclair.")
-    return regions_data, depts_data
+    print("🌍 1/2 : Récupération des Régions via l'API geo.api.gouv.fr...")
+    regions = requests.get("https://geo.api.gouv.fr/regions").json()
+    depts = requests.get("https://geo.api.gouv.fr/departements").json()
+    return regions, depts
 
-def enrichir_neo4j_avec_regions(driver, regions, departements):
-    print("Création des Noeuds (:Region) et des relations [:APPARTIENT_A]...")
-    
+def preparer_relations_voisins(dictionnaire):
+    print("🌍 2/2 : Préparation de la carte de France (Voisins)...")
+    relations = []
+    vus = set()
+    for d1, voisins in dictionnaire.items():
+        for d2 in voisins:
+            paire = tuple(sorted([d1, d2]))
+            if paire not in vus:
+                vus.add(paire)
+                relations.append({"d1": paire[0], "d2": paire[1]})
+    return relations
+
+def enrichir_neo4j_complet(driver, regions, departements, frontieres):
+    print("🔗 Injection dans Neo4j...")
     with driver.session() as session:
-        # Étape 1 : Créer les nœuds Région
+        # 1. Création des Régions et Appartenance
         session.run("""
             UNWIND $regions AS reg
-            MERGE (r:Region {code: reg.code})
-            SET r.nom = reg.nom
+            MERGE (r:Region {code: reg.code}) SET r.nom = reg.nom
         """, regions=regions)
         
-        # Étape 2 : Lier nos Départements existants à ces Régions
         session.run("""
             UNWIND $departements AS dep
-            // On cherche notre département existant
             MATCH (d:Departement {code: dep.code})
-            // On cherche la région correspondante
             MATCH (r:Region {code: dep.codeRegion})
-            // On crée la relation d'appartenance
             MERGE (d)-[:APPARTIENT_A]->(r)
         """, departements=departements)
         
-    print("Le graphe a été enrichi avec succès avec les données du Gouvernement !")
+        # 2. Création des Voisins
+        session.run("""
+            UNWIND $frontieres AS rel
+            MATCH (dept1:Departement {code: rel.d1})
+            MATCH (dept2:Departement {code: rel.d2})
+            MERGE (dept1)-[:EST_VOISIN_DE]->(dept2)
+        """, frontieres=frontieres)
+        
+    print("✅ Le graphe a été totalement enrichi (Régions + Adjacences) !")
 
 if __name__ == "__main__":
     try:
-        # Téléchargement instantané via l'API REST
-        regions, departements = telecharger_donnees_gouvernementales()
+        reg_data, dep_data = telecharger_donnees_gouvernementales()
+        frontieres_data = preparer_relations_voisins(ADJACENCES_FRANCE)
         
-        # Injection
         driver = GraphDatabase.driver(URI, auth=(UTILISATEUR, MOT_DE_PASSE))
-        enrichir_neo4j_avec_regions(driver, regions, departements)
+        enrichir_neo4j_complet(driver, reg_data, dep_data, frontieres_data)
         driver.close()
         
     except Exception as e:
-        print(f"Erreur : {e}")
+        print(f"❌ Erreur : {e}")

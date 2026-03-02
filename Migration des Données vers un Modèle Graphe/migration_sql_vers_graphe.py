@@ -18,7 +18,7 @@ def vider_graphe(neo_driver):
         session.run("MATCH (n) DETACH DELETE n")
 
 def creer_contraintes(neo_driver):
-    print("⚙️  Création des index Neo4j...")
+    print("Création des index Neo4j...")
     requetes = [
         "CREATE CONSTRAINT IF NOT EXISTS FOR (d:Departement) REQUIRE d.code IS UNIQUE",
         "CREATE CONSTRAINT IF NOT EXISTS FOR (i:Infraction) REQUIRE i.code_index IS UNIQUE",
