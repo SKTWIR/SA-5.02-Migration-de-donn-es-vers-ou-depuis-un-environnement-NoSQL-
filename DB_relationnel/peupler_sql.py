@@ -3,7 +3,7 @@ import sqlite3
 import os
 
 def peupler_base_sql(fichier_csv, fichier_db):
-    print(f"📂 Lecture du fichier {fichier_csv}...")
+    print(f"Lecture du fichier {fichier_csv}")
     
     # CORRECTION 1 : On force la lecture des colonnes problématiques en texte (str)
     # et on évite le warning avec low_memory=False
@@ -21,7 +21,7 @@ def peupler_base_sql(fichier_csv, fichier_db):
     conn = sqlite3.connect(fichier_db)
     cursor = conn.cursor()
 
-    print("⚙️  Création des tables SQL (MLD)...")
+    print("Création des tables SQL (MLD)")
     cursor.executescript('''
     DROP TABLE IF EXISTS Fait_Statistique;
     DROP TABLE IF EXISTS Service;
@@ -58,22 +58,22 @@ def peupler_base_sql(fichier_csv, fichier_db):
     ''')
 
     # --- 1. Insertion des Départements ---
-    print("1️⃣  Insertion des Départements...")
+    print("Insertion des Départements")
     df_dept = df[['code_dept']].drop_duplicates().dropna()
     df_dept.to_sql('Departement', conn, if_exists='append', index=False)
 
     # --- 2. Insertion des Infractions ---
-    print("2️⃣  Insertion des Infractions...")
+    print("Insertion des Infractions")
     df_infraction = df[['code_index', 'libelle_infraction']].drop_duplicates(subset=['code_index']).dropna()
     df_infraction.to_sql('Infraction', conn, if_exists='append', index=False)
 
     # --- 3. Insertion des Services ---
-    print("3️⃣  Insertion des Services...")
+    print("Insertion des Services")
     df_service = df[['nom_service', 'perimetre', 'force_ordre', 'code_dept']].drop_duplicates().dropna()
     df_service.to_sql('Service', conn, if_exists='append', index=False)
 
     # --- 4. Insertion des Faits Statistiques ---
-    print("4️⃣  Préparation de la table des Faits Statistiques...")
+    print("Préparation de la table des Faits Statistiques")
     services_db = pd.read_sql_query("SELECT id_service, nom_service, code_dept, force_ordre FROM Service", conn)
     
     df_merged = df.merge(services_db, on=['nom_service', 'code_dept', 'force_ordre'], how='left')
@@ -86,10 +86,10 @@ def peupler_base_sql(fichier_csv, fichier_db):
     
     df_faits = df_faits.groupby(['id_service', 'code_index', 'annee_valeur'], as_index=False)['nombre_faits'].sum()
 
-    print(f"⏳ Insertion de {len(df_faits)} lignes de statistiques (veuillez patienter)...")
+    print(f"Insertion de {len(df_faits)} lignes de statistiques (veuillez patienter)...")
     df_faits.to_sql('Fait_Statistique', conn, if_exists='append', index=False)
 
-    print("⚡ Création des index pour accélérer les requêtes...")
+    print("Création des index pour accélérer les requêtes...")
     cursor.executescript('''
     CREATE INDEX idx_stat_annee ON Fait_Statistique(annee_valeur);
     CREATE INDEX idx_stat_service ON Fait_Statistique(id_service);
@@ -109,4 +109,4 @@ if __name__ == "__main__":
     if os.path.exists(csv_entree):
         peupler_base_sql(csv_entree, base_sortie)
     else:
-        print(f"❌ Erreur : Le fichier {csv_entree} est introuvable.")
+        print(f"Erreur : Le fichier {csv_entree} est introuvable.")
