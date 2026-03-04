@@ -29,7 +29,12 @@ V - [Comparaison des performances entre les bases relationnelles et graphes](#v-
 
 VI - [Les différentes méthode de migrations qui existent](#vi---les-différentes-méthodes-de-migration-sql-vers-graphe)
 
-VII - [Ajout de nouvelles données](#vii---lajout-de-nouvelles-données--ladjacence-des-communesdépartements)
+VII - [Description des travaux](#vii---description-des-travaux)
+* [1. Choix technologique et stratégie](#1-choix-technologique-et-stratégie)
+* [2. La migration](#2-la-migration)
+
+
+VIII - [Ajout de nouvelles données](#vii---lajout-de-nouvelles-données--ladjacence-des-communesdépartements)
 
 
 # I - Étude des données et identification des entités et relations clés
@@ -221,7 +226,43 @@ Dans le cadre d'une migration d'un modèle relationnel vers un modèle graphe, p
     * Principe : Utilisation d'outils avec interface graphique où l'on glisse-dépose les fichiers sources et où l'on dessine les flèches pour indiquer au logiciel comment transformer les colonnes en nœuds et relations.
     * Avantage : Ne nécessite quasiment aucune compétence en code (No-Code).
 
-# VII - L'ajout de nouvelles données : L'adjacence des communes/départements
+# VII - Description des travaux
+
+Pour la migration de nos données, nous avons mis en œuvre la Méthode 1 (ETL par script Python) évoqué plus haut. Ce choix se justifie par la nécessité de transformer une structure relationnelle rigide en un modèle de graphe flexible, tout en maîtrisant la performance de l'injection.
+
+## 1. Choix technologique et stratégie
+
+Nous avons développé un connecteur sur mesure en Python, utilisant le driver officiel neo4j et le module sqlite3.
+Nous avons décidé d'utiliser une approche par Batching (lots de 10 000 lignes). Cela permet d'éviter la saturation de la mémoire vive et d'optimiser les transactions vers Neo4j.
+
+## 2. La migration
+
+Le cycle de vie de la donnée pour ce projet respecte le pipeline suivant :
+Excel (Source) → CSV → SQLite (Relationnel) → Neo4j (Graphe).
+
+Le processus se déroule en quatre étapes distinctes :
+
+### La phase de préparation (Pre-processing et Nettoyage) :
+Pour commencer la SAE il nous a fallu crée un script pour transformer notre fichier Excel de données en CSV puis en .SQL exploitable. Cette étape a nécissité un pre-processing sur le fichier Excel pour simplifier la transformation en CSV. ensuite un code python a servi a transformer le CSV en base de données relationnel.
+
+Enfin nous rentrons dans le coeur du sujet avec la création d'une base noSQL avec neo4j. Avant toute insertion en neo4j, notre script purge la base de destination pour garantir la propreté de la base. Nous créons immédiatement des contraintes unique (IS UNIQUE) sur les étiquettes Departement, Infraction et Service. Cela est important pour garantir des bonnes performances.
+
+### Extraction et Transformation :
+On extrait les entités pour les transformer en noeuds. Certains noeuds sont enrichie par des propriétés pour avoir une base de données plus propre.
+Exemple : la table Service est enrichie en créant une propriété nom unique combinant le nom du service et son département pour éviter les collisions entre services homonymes de départements différents.
+
+### Chargement des noeuds (intégration) :
+Nous utilisons la clause Cypher **UNWIND**. Au lieu d'envoyer 1 000 requêtes CREATE, nous envoyons une seule liste de 1 000 dictionnaires Python que Neo4j traite comme une boucle interne ultra-rapide.
+
+### Création des Relations :
+C'est l'étape la plus importante. La table SQL Fait_Statistique est transformée en relations (A_ENREGISTRE).
+
+On lie le Service au Departement via :SITUE_DANS.
+
+On lie le Service à l'Infraction via :A_ENREGISTRE, en stockant l'année et le nombre de faits directement comme propriétés de la relation.
+
+
+# VIII - L'ajout de nouvelles données : L'adjacence des communes/départements
 
 Le cahier des charges demande de prévoir l'enrichissement des données avec des sources publiques (open data), notamment les adjacences géographiques (qui est voisin de qui). L'objectif est de pouvoir analyser la propagation géographique d'un type de délit. Voici comment cela se traduit dans les deux technologies :
 
@@ -253,4 +294,5 @@ MERGE (d1)-[:EST_VOISIN_DE]-(d2)
 **Avantage** : Une fois la flèche créée, répondre à la question de la "propagation" devient natif et quasi immédiat. En Cypher, on peut chercher des chemins de profondeur variable d'une simple ligne :
 MATCH (s:Service)-[:A_ENREGISTRE]->(:Infraction {libelle: "Trafic de stupéfiants"})
 MATCH (s)-[:SITUE_DANS]->(d1:Departement)-[:EST_VOISIN_DE*1..3]-(d2:Departement)
+
 Ici, *1..3 demande au moteur de naviguer tout seul jusqu'aux voisins de niveau 3, chose redoutable à faire en relationnel !
