@@ -254,6 +254,16 @@ Exemple : la table Service est enrichie en créant une propriété nom unique co
 ### Chargement des noeuds (intégration) :
 Nous utilisons la clause Cypher **UNWIND**. Au lieu d'envoyer 1 000 requêtes CREATE, nous envoyons une seule liste de 1 000 dictionnaires Python que Neo4j traite comme une boucle interne ultra-rapide.
 
+##Optimisation des données (Filtrage des valeurs null) :
+Lors de cette étape, nous avons fait le choix délibéré de ne pas migrer les lignes dont le nombre de faits est égal à 0.
+
+En SQL : Une ligne avec une valeur à 0 reste présente pour respecter la structure de la table.
+
+En Graphe : Une relation n'existe que si l'événement a eu lieu. Ne pas créer de relations pour les valeurs nulles permet de réduire drastiquement le poids de la base de données et d'accélérer les futures requêtes de parcours (on ne garde que ce qui est significatif).
+
+*exemple de requête pour voir les infractions à 0 :*
+![exemple requete a 0](exemple_a_zero.png)
+    
 ### Création des Relations :
 C'est l'étape la plus importante. La table SQL Fait_Statistique est transformée en relations (A_ENREGISTRE).
 
@@ -296,3 +306,4 @@ MATCH (s:Service)-[:A_ENREGISTRE]->(:Infraction {libelle: "Trafic de stupéfiant
 MATCH (s)-[:SITUE_DANS]->(d1:Departement)-[:EST_VOISIN_DE*1..3]-(d2:Departement)
 
 Ici, *1..3 demande au moteur de naviguer tout seul jusqu'aux voisins de niveau 3, chose redoutable à faire en relationnel !
+
